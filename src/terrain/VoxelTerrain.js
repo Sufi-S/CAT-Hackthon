@@ -254,6 +254,7 @@ export default class VoxelTerrain {
       const im = this._instancedMeshes[TILE.DIRT];
       if (im && tile.instanceIndex !== undefined) {
         const dummy = new THREE.Object3D();
+        dummy.position.set(0, -500, 0);
         dummy.scale.set(0, 0, 0);
         dummy.updateMatrix();
         im.setMatrixAt(tile.instanceIndex, dummy.matrix);
@@ -302,6 +303,46 @@ export default class VoxelTerrain {
       }
     }
     return out;
+  }
+
+  showDumpEffect(worldX, worldZ) {
+    const count = 3 + Math.floor(Math.random() * 3);
+    const geo = new THREE.BoxGeometry(0.3, 0.3, 0.3);
+    const chunks = [];
+
+    for (let i = 0; i < count; i++) {
+      const mat = new THREE.MeshLambertMaterial({
+        color: 0x8B4513,
+        transparent: true,
+      });
+      const chunk = new THREE.Mesh(geo, mat);
+      const s = 0.5 + Math.random() * 0.5;
+      chunk.position.set(
+        worldX + (Math.random() - 0.5) * 1.5,
+        0.15 + Math.random() * 0.3,
+        worldZ + (Math.random() - 0.5) * 1.5
+      );
+      chunk.rotation.set(
+        Math.random() * Math.PI,
+        Math.random() * Math.PI,
+        Math.random() * Math.PI
+      );
+      chunk.scale.set(s, s, s);
+      this.scene.add(chunk);
+      chunks.push(chunk);
+    }
+
+    setTimeout(() => {
+      for (const c of chunks) c.material.opacity = 0.4;
+    }, 800);
+
+    setTimeout(() => {
+      for (const c of chunks) {
+        this.scene.remove(c);
+        c.material.dispose();
+      }
+      geo.dispose();
+    }, 1500);
   }
 
   rebuild() {

@@ -31,6 +31,7 @@ export default class Excavator {
     this._boomGroup = null;
     this._armGroup = null;
     this._bucket = null;
+    this._bucketWorldPos = new THREE.Vector3();
 
     this._buildModel();
 
@@ -199,9 +200,15 @@ export default class Excavator {
     this.isEngineOn = false;
   }
 
+  getBucketWorldPosition() {
+    this._bucket.getWorldPosition(this._bucketWorldPos);
+    return this._bucketWorldPos;
+  }
+
   dig() {
-    if (!this.terrain.isDiggable(this.position.x, this.position.z)) return false;
-    const tile = this.terrain.getTileAt(this.position.x, this.position.z);
+    const bp = this.getBucketWorldPosition();
+    if (!this.terrain.isDiggable(bp.x, bp.z)) return false;
+    const tile = this.terrain.getTileAt(bp.x, bp.z);
     this.terrain.removeTile(tile.row, tile.col);
     this.payloadCount++;
     this.totalDigCount++;
@@ -211,6 +218,7 @@ export default class Excavator {
   dump() {
     if (!this.terrain.isDumpZone(this.position.x, this.position.z)) return false;
     if (this.payloadCount === 0) return false;
+    this.terrain.showDumpEffect(this.position.x, this.position.z);
     this.payloadCount = 0;
     this.dumpCount++;
     return true;
