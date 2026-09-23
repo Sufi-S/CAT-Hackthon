@@ -1,2 +1,59 @@
-// Stage 0 — ScoringSystem.js — CAT Operator Guardian
-export default class ScoringSystem {}
+export default class ScoringSystem {
+  constructor(proximitySystem, excavator) {
+    this.proximity = proximitySystem;
+    this.excavator = excavator;
+
+    this.safetyScore = 100;
+    this.fuelScore = 100;
+    this.idleScore = 100;
+    this.taskScore = 0;
+
+    this._totalTime = 0;
+    this._totalIdleTime = 0;
+    this._lastPayloadCount = 0;
+  }
+
+  update(deltaTime) {
+    if (!this.excavator.isEngineOn) return;
+
+    this._totalTime += deltaTime;
+
+    if (this.proximity.getCurrentRisk() === 'HIGH') {
+      this.safetyScore = Math.max(0, this.safetyScore - 5 * deltaTime);
+    }
+
+    const isIdle = this.excavator.idleTimer > 0;
+    if (isIdle) {
+      this._totalIdleTime += deltaTime;
+    }
+    if (this._totalTime > 0) {
+      this.fuelScore = Math.max(0, 100 * (1 - this._totalIdleTime / this._totalTime));
+    }
+
+    if (isIdle) {
+      this.idleScore = Math.max(0, this.idleScore - 2 * deltaTime);
+    }
+
+    if (this.excavator.payloadCount > this._lastPayloadCount) {
+      this.taskScore = Math.min(100, this.taskScore + 20);
+      this._lastPayloadCount = this.excavator.payloadCount;
+    }
+  }
+
+  getComposite() {
+    return this.safetyScore * 0.35 +
+           this.fuelScore * 0.25 +
+           this.idleScore * 0.25 +
+           this.taskScore * 0.15;
+  }
+
+  getSnapshot() {
+    return {
+      safety: this.safetyScore,
+      fuel: this.fuelScore,
+      idle: this.idleScore,
+      task: this.taskScore,
+      total: this.getComposite(),
+    };
+  }
+}

@@ -56,6 +56,30 @@ body {
   border-radius: 2px;
 }
 
+.hud-divider {
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+  margin: 6px 0;
+}
+
+.score-track {
+  display: inline-block;
+  width: 60px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  vertical-align: middle;
+  margin: 0 6px;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.score-track span {
+  display: block;
+  height: 100%;
+  width: 0%;
+  transition: width 0.3s, background-color 0.3s;
+  border-radius: 2px;
+}
+
 #hud-alert {
   display: none;
   position: absolute;
@@ -67,6 +91,16 @@ body {
   padding: 20px 32px;
   font-size: 24px;
   pointer-events: none;
+  white-space: nowrap;
+}
+
+#hud-alert.pulse {
+  animation: pulse-alert 0.5s infinite;
+}
+
+@keyframes pulse-alert {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-50%, -50%) scale(1.05); }
 }
 
 #hud-camera-mode {

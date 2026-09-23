@@ -3,16 +3,39 @@ import SceneManager from './scene/SceneManager.js';
 import Excavator from './machine/Excavator.js';
 import GamepadController from './input/GamepadController.js';
 import HUD from './ui/HUD.js';
+import WorkerNPC from './npcs/WorkerNPC.js';
+import ProximitySystem from './systems/ProximitySystem.js';
+import ScoringSystem from './systems/ScoringSystem.js';
+import TelemetryClient from './network/TelemetryClient.js';
 
 const sceneManager = new SceneManager();
 const clock = new THREE.Clock();
 const gamepad = new GamepadController();
 const excavator = new Excavator(sceneManager.scene, sceneManager.terrain);
 const hud = new HUD();
+const telemetry = new TelemetryClient();
+
+const PATROL_PATHS = [
+  [[-5, 0, 10], [5, 0, 10], [5, 0, 15], [-5, 0, 15]],
+  [[-8, 0, 0], [-8, 0, -8], [0, 0, -8]],
+  [[10, 0, -5], [10, 0, 5], [15, 0, 5], [15, 0, -5]],
+];
+
+const workers = PATROL_PATHS.map((path, i) =>
+  new WorkerNPC(sceneManager.scene, sceneManager.terrain, path, `worker_${i + 1}`)
+);
+
+const proximity = new ProximitySystem(
+  sceneManager.scene, excavator, workers, gamepad, telemetry
+);
+const scoring = new ScoringSystem(proximity, excavator);
 
 window.terrain = sceneManager.terrain;
 window.excavator = excavator;
 window.gamepad = gamepad;
+window.workers = workers;
+window.proximity = proximity;
+window.scoring = scoring;
 
 let cameraMode = 0;
 
@@ -71,10 +94,14 @@ function animate() {
     excavator.update(deltaTime, inputState);
   }
 
+  workers.forEach(w => w.update(deltaTime));
+  proximity.update(deltaTime);
+  scoring.update(deltaTime);
+
   sceneManager.updateCamera(excavator);
   sceneManager.terrain.update(deltaTime);
 
-  hud.update(excavator.getTelemetrySnapshot(), cameraMode);
+  hud.update(excavator.getTelemetrySnapshot(), cameraMode, scoring.getSnapshot());
 
   sceneManager.renderer.render(sceneManager.scene, sceneManager.camera);
 }
@@ -82,5 +109,7 @@ function animate() {
 console.log('CAT Operator Guardian — Game Engine Initialized');
 console.log('Three.js version: ' + THREE.REVISION);
 console.log('Gamepad support: ' + (!!navigator.getGamepads ? 'YES' : 'NO'));
+console.log('Workers spawned: ' + workers.length);
+console.log('Session ID: ' + window.SESSION_ID);
 
 animate();
