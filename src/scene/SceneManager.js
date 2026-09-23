@@ -1,5 +1,5 @@
-// Stage 0 — SceneManager.js — CAT Operator Guardian
 import * as THREE from 'three';
+import VoxelTerrain from '../terrain/VoxelTerrain.js';
 
 export default class SceneManager {
   constructor() {
@@ -19,7 +19,7 @@ export default class SceneManager {
       0.1,
       1000
     );
-    this.camera.position.set(0, 15, 20);
+    this.camera.position.set(0, 35, 35);
     this.camera.lookAt(0, 0, 0);
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
@@ -29,8 +29,8 @@ export default class SceneManager {
     dirLight.position.set(50, 100, 50);
     this.scene.add(dirLight);
 
-    const grid = new THREE.GridHelper(20, 20);
-    this.scene.add(grid);
+    this.terrain = new VoxelTerrain(this.scene);
+    this.terrain.buildSite();
 
     window.addEventListener('resize', () => this._onResize());
   }
@@ -42,6 +42,6 @@ export default class SceneManager {
   }
 
   update(deltaTime) {
-    // Stage 0 placeholder
+    this.terrain.update(deltaTime);
   }
 }

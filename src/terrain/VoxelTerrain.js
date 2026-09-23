@@ -1,2 +1,334 @@
-// Stage 0 — VoxelTerrain.js — CAT Operator Guardian
-export default class VoxelTerrain {}
+import * as THREE from 'three';
+
+const TILE = {
+  ROCK: 'ROCK',
+  GRAVEL: 'GRAVEL',
+  DIRT: 'DIRT',
+  DIG_TARGET: 'DIG_TARGET',
+  DIG_HOLE: 'DIG_HOLE',
+  DUMP_ZONE: 'DUMP_ZONE',
+};
+
+const COLORS = {
+  ROCK: 0x808080,
+  GRAVEL: 0xA0916B,
+  DIRT: 0x8B4513,
+  DIG_TARGET: 0xFFD700,
+  DUMP_ZONE: 0x2196F3,
+};
+
+const GRID_SIZE = 24;
+const TILE_SIZE = 2;
+const HALF_EXTENT = (GRID_SIZE * TILE_SIZE) / 2;
+
+export default class VoxelTerrain {
+  constructor(scene) {
+    this.scene = scene;
+    this.grid = [];
+    this._instancedMeshes = {};
+    this._digTargetMeshes = [];
+    this._fenceMesh = null;
+    this._groundPlane = null;
+    this._siteLight = null;
+    this._digTargetGeo = null;
+    this._digTargetMat = null;
+  }
+
+  buildSite() {
+    this._initGrid();
+    this._assignLayout();
+    this._buildInstancedMeshes();
+    this._buildDigTargetMeshes();
+    this._buildPerimeterFence();
+    this._buildGroundPlane();
+    this._buildSiteLighting();
+  }
+
+  _tileToWorld(row, col) {
+    return {
+      x: col * TILE_SIZE - HALF_EXTENT + 1,
+      z: row * TILE_SIZE - HALF_EXTENT + 1,
+    };
+  }
+
+  _worldToTile(worldX, worldZ) {
+    return {
+      row: Math.max(0, Math.min(GRID_SIZE - 1, Math.floor((worldZ + HALF_EXTENT) / TILE_SIZE))),
+      col: Math.max(0, Math.min(GRID_SIZE - 1, Math.floor((worldX + HALF_EXTENT) / TILE_SIZE))),
+    };
+  }
+
+  _initGrid() {
+    for (let r = 0; r < GRID_SIZE; r++) {
+      this.grid[r] = [];
+      for (let c = 0; c < GRID_SIZE; c++) {
+        this.grid[r][c] = { type: TILE.GRAVEL, mesh: null, row: r, col: c };
+      }
+    }
+  }
+
+  _assignLayout() {
+    for (let r = 0; r < GRID_SIZE; r++) {
+      for (let c = 0; c < GRID_SIZE; c++) {
+        if (r <= 1 || r >= 22 || c <= 1 || c >= 22) {
+          this.grid[r][c].type = TILE.ROCK;
+        }
+      }
+    }
+
+    for (let r = 5; r <= 9; r++) {
+      for (let c = 5; c <= 10; c++) {
+        this.grid[r][c].type = TILE.DIRT;
+      }
+    }
+
+    const dirtCells = [];
+    for (let r = 5; r <= 9; r++) {
+      for (let c = 5; c <= 10; c++) {
+        dirtCells.push([r, c]);
+      }
+    }
+    for (let i = dirtCells.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [dirtCells[i], dirtCells[j]] = [dirtCells[j], dirtCells[i]];
+    }
+    for (let i = 0; i < 3; i++) {
+      this.grid[dirtCells[i][0]][dirtCells[i][1]].type = TILE.DIG_TARGET;
+    }
+
+    for (let r = 14; r <= 16; r++) {
+      for (let c = 14; c <= 18; c++) {
+        this.grid[r][c].type = TILE.DUMP_ZONE;
+      }
+    }
+
+    const gravelCells = [];
+    for (let r = 2; r <= 21; r++) {
+      for (let c = 2; c <= 21; c++) {
+        if (this.grid[r][c].type === TILE.GRAVEL) gravelCells.push([r, c]);
+      }
+    }
+    for (let i = gravelCells.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [gravelCells[i], gravelCells[j]] = [gravelCells[j], gravelCells[i]];
+    }
+    for (let i = 0; i < 6; i++) {
+      this.grid[gravelCells[i][0]][gravelCells[i][1]].type = TILE.ROCK;
+    }
+  }
+
+  _buildInstancedMeshes() {
+    const configs = {
+      [TILE.ROCK]:      { geo: [TILE_SIZE, 1, TILE_SIZE],     y: -0.5, color: COLORS.ROCK },
+      [TILE.GRAVEL]:    { geo: [TILE_SIZE, 1, TILE_SIZE],     y: -0.5, color: COLORS.GRAVEL },
+      [TILE.DIRT]:      { geo: [TILE_SIZE, 1.5, TILE_SIZE],   y: 0,    color: COLORS.DIRT },
+      [TILE.DUMP_ZONE]: { geo: [TILE_SIZE, 0.2, TILE_SIZE],   y: -0.9, color: COLORS.DUMP_ZONE },
+    };
+
+    for (const [type, cfg] of Object.entries(configs)) {
+      const tiles = [];
+      for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+          if (this.grid[r][c].type === type) tiles.push(this.grid[r][c]);
+        }
+      }
+      if (tiles.length === 0) continue;
+
+      const geometry = new THREE.BoxGeometry(...cfg.geo);
+      const material = new THREE.MeshLambertMaterial({ color: cfg.color });
+      const im = new THREE.InstancedMesh(geometry, material, tiles.length);
+      const dummy = new THREE.Object3D();
+
+      tiles.forEach((tile, idx) => {
+        const { x, z } = this._tileToWorld(tile.row, tile.col);
+        dummy.position.set(x, cfg.y, z);
+        dummy.rotation.set(0, 0, 0);
+        dummy.scale.set(1, 1, 1);
+        dummy.updateMatrix();
+        im.setMatrixAt(idx, dummy.matrix);
+        tile.mesh = im;
+        tile.instanceIndex = idx;
+      });
+
+      im.instanceMatrix.needsUpdate = true;
+      this.scene.add(im);
+      this._instancedMeshes[type] = im;
+    }
+  }
+
+  _buildDigTargetMeshes() {
+    this._digTargetGeo = new THREE.BoxGeometry(TILE_SIZE, 1.5, TILE_SIZE);
+    this._digTargetMat = new THREE.MeshLambertMaterial({
+      color: COLORS.DIG_TARGET,
+      emissive: 0xFFAA00,
+      emissiveIntensity: 0.3,
+    });
+
+    for (let r = 0; r < GRID_SIZE; r++) {
+      for (let c = 0; c < GRID_SIZE; c++) {
+        const tile = this.grid[r][c];
+        if (tile.type !== TILE.DIG_TARGET) continue;
+        const mesh = new THREE.Mesh(this._digTargetGeo, this._digTargetMat);
+        const { x, z } = this._tileToWorld(r, c);
+        mesh.position.set(x, 0, z);
+        this.scene.add(mesh);
+        tile.mesh = mesh;
+        this._digTargetMeshes.push(mesh);
+      }
+    }
+  }
+
+  _buildPerimeterFence() {
+    const fenceGeo = new THREE.BoxGeometry(0.2, 1.5, TILE_SIZE);
+    const fenceMat = new THREE.MeshLambertMaterial({ color: COLORS.ROCK });
+    const entries = [];
+
+    for (let c = 0; c < GRID_SIZE; c++) {
+      const pos = this._tileToWorld(0, c);
+      entries.push({ x: pos.x, z: pos.z, rotY: Math.PI / 2 });
+    }
+    for (let c = 0; c < GRID_SIZE; c++) {
+      const pos = this._tileToWorld(GRID_SIZE - 1, c);
+      entries.push({ x: pos.x, z: pos.z, rotY: Math.PI / 2 });
+    }
+    for (let r = 1; r < GRID_SIZE - 1; r++) {
+      const pos = this._tileToWorld(r, 0);
+      entries.push({ x: pos.x, z: pos.z, rotY: 0 });
+    }
+    for (let r = 1; r < GRID_SIZE - 1; r++) {
+      const pos = this._tileToWorld(r, GRID_SIZE - 1);
+      entries.push({ x: pos.x, z: pos.z, rotY: 0 });
+    }
+
+    const im = new THREE.InstancedMesh(fenceGeo, fenceMat, entries.length);
+    const dummy = new THREE.Object3D();
+
+    entries.forEach((e, i) => {
+      dummy.position.set(e.x, 0.75, e.z);
+      dummy.rotation.set(0, e.rotY, 0);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      im.setMatrixAt(i, dummy.matrix);
+    });
+
+    im.instanceMatrix.needsUpdate = true;
+    this.scene.add(im);
+    this._fenceMesh = im;
+  }
+
+  _buildGroundPlane() {
+    const geo = new THREE.PlaneGeometry(200, 200);
+    const mat = new THREE.MeshBasicMaterial({ color: 0x87CEEB });
+    this._groundPlane = new THREE.Mesh(geo, mat);
+    this._groundPlane.rotation.x = -Math.PI / 2;
+    this._groundPlane.position.y = -1.5;
+    this.scene.add(this._groundPlane);
+  }
+
+  _buildSiteLighting() {
+    this._siteLight = new THREE.PointLight(0xFFE4B5, 1.0, 60);
+    this._siteLight.position.set(0, 20, 0);
+    this.scene.add(this._siteLight);
+  }
+
+  getTileAt(worldX, worldZ) {
+    const { row, col } = this._worldToTile(worldX, worldZ);
+    const tile = this.grid[row][col];
+    return { type: tile.type, mesh: tile.mesh, row: tile.row, col: tile.col };
+  }
+
+  removeTile(row, col) {
+    if (row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE) return;
+    const tile = this.grid[row][col];
+
+    if (tile.type === TILE.DIG_TARGET && tile.mesh) {
+      this.scene.remove(tile.mesh);
+      const idx = this._digTargetMeshes.indexOf(tile.mesh);
+      if (idx !== -1) this._digTargetMeshes.splice(idx, 1);
+      tile.type = TILE.DIG_HOLE;
+      tile.mesh = null;
+      return;
+    }
+
+    if (tile.type === TILE.DIRT) {
+      const im = this._instancedMeshes[TILE.DIRT];
+      if (im && tile.instanceIndex !== undefined) {
+        const dummy = new THREE.Object3D();
+        dummy.scale.set(0, 0, 0);
+        dummy.updateMatrix();
+        im.setMatrixAt(tile.instanceIndex, dummy.matrix);
+        im.instanceMatrix.needsUpdate = true;
+      }
+      tile.type = TILE.DIG_HOLE;
+      tile.mesh = null;
+      return;
+    }
+  }
+
+  isDriveable(worldX, worldZ) {
+    const { row, col } = this._worldToTile(worldX, worldZ);
+    const type = this.grid[row][col].type;
+    return type === TILE.GRAVEL || type === TILE.DUMP_ZONE;
+  }
+
+  isDiggable(worldX, worldZ) {
+    const { row, col } = this._worldToTile(worldX, worldZ);
+    const type = this.grid[row][col].type;
+    return type === TILE.DIRT || type === TILE.DIG_TARGET;
+  }
+
+  isDumpZone(worldX, worldZ) {
+    const { row, col } = this._worldToTile(worldX, worldZ);
+    return this.grid[row][col].type === TILE.DUMP_ZONE;
+  }
+
+  getRemainingDigTargets() {
+    let count = 0;
+    for (let r = 0; r < GRID_SIZE; r++) {
+      for (let c = 0; c < GRID_SIZE; c++) {
+        if (this.grid[r][c].type === TILE.DIG_TARGET) count++;
+      }
+    }
+    return count;
+  }
+
+  getAllDigTargetPositions() {
+    const out = [];
+    for (let r = 0; r < GRID_SIZE; r++) {
+      for (let c = 0; c < GRID_SIZE; c++) {
+        if (this.grid[r][c].type === TILE.DIG_TARGET) {
+          const { x, z } = this._tileToWorld(r, c);
+          out.push({ x, z });
+        }
+      }
+    }
+    return out;
+  }
+
+  update(deltaTime) {}
+
+  dispose() {
+    for (const im of Object.values(this._instancedMeshes)) {
+      im.geometry.dispose();
+      im.material.dispose();
+      this.scene.remove(im);
+    }
+    for (const m of this._digTargetMeshes) this.scene.remove(m);
+    if (this._digTargetGeo) this._digTargetGeo.dispose();
+    if (this._digTargetMat) this._digTargetMat.dispose();
+    if (this._fenceMesh) {
+      this._fenceMesh.geometry.dispose();
+      this._fenceMesh.material.dispose();
+      this.scene.remove(this._fenceMesh);
+    }
+    if (this._groundPlane) {
+      this._groundPlane.geometry.dispose();
+      this._groundPlane.material.dispose();
+      this.scene.remove(this._groundPlane);
+    }
+    if (this._siteLight) this.scene.remove(this._siteLight);
+    this._instancedMeshes = {};
+    this._digTargetMeshes = [];
+    this.grid = [];
+  }
+}

@@ -1,18 +1,15 @@
-// Stage 0 — main.js — CAT Operator Guardian
 import * as THREE from 'three';
 import SceneManager from './scene/SceneManager.js';
 
 const sceneManager = new SceneManager();
+const clock = new THREE.Clock();
 
-let lastTime = 0;
+window.terrain = sceneManager.terrain;
 
-function gameLoop(timestamp) {
-  const deltaTime = (timestamp - lastTime) / 1000;
-  lastTime = timestamp;
-
+function gameLoop() {
+  const deltaTime = clock.getDelta();
   sceneManager.update(deltaTime);
   sceneManager.renderer.render(sceneManager.scene, sceneManager.camera);
-
   requestAnimationFrame(gameLoop);
 }
 
