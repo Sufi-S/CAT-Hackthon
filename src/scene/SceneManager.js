@@ -32,6 +32,10 @@ export default class SceneManager {
     this.terrain = new VoxelTerrain(this.scene);
     this.terrain.buildSite();
 
+    this.cameraMode = 0;
+    this._camTarget = new THREE.Vector3();
+    this._lookTarget = new THREE.Vector3();
+
     window.addEventListener('resize', () => this._onResize());
   }
 
@@ -39,6 +43,45 @@ export default class SceneManager {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+
+  setCameraMode(mode) {
+    this.cameraMode = mode;
+  }
+
+  updateCamera(excavator) {
+    const pos = excavator.position;
+
+    switch (this.cameraMode) {
+      case 0:
+        this._camTarget.set(pos.x, 35, pos.z + 25);
+        this.camera.position.lerp(this._camTarget, 0.08);
+        this.camera.lookAt(pos.x, pos.y, pos.z);
+        break;
+
+      case 1: {
+        const offX = Math.sin(excavator.heading) * -12;
+        const offZ = Math.cos(excavator.heading) * -12;
+        this._camTarget.set(pos.x + offX, 8, pos.z + offZ);
+        this.camera.position.lerp(this._camTarget, 0.06);
+        this._lookTarget.set(pos.x, pos.y + 1, pos.z);
+        this.camera.lookAt(this._lookTarget);
+        break;
+      }
+
+      case 2: {
+        this._camTarget.set(0, 1.2, 0.3);
+        excavator.group.localToWorld(this._camTarget);
+        this.camera.position.copy(this._camTarget);
+        this._lookTarget.set(
+          this._camTarget.x + Math.sin(excavator.heading) * 5,
+          this._camTarget.y + 0.1,
+          this._camTarget.z + Math.cos(excavator.heading) * 5
+        );
+        this.camera.lookAt(this._lookTarget);
+        break;
+      }
+    }
   }
 
   update(deltaTime) {

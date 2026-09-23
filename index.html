@@ -15,6 +15,19 @@
       <div id="hud-camera-mode">OVERHEAD</div>
       <div id="hud-controller">&#9679; Controller: Disconnected</div>
     </div>
+    <div id="seatbelt-modal">
+      <div class="seatbelt-box">
+        <h2>PRE-START SAFETY CHECK</h2>
+        <p>Before operating, confirm:</p>
+        <ul class="seatbelt-list">
+          <li id="check-seatbelt">&#9744; Seatbelt fastened</li>
+          <li id="check-perimeter">&#9744; Site perimeter clear</li>
+          <li id="check-walkaround">&#9744; Machine walkaround complete</li>
+        </ul>
+        <p class="seatbelt-hint">Press START button to begin operation<br>or click below if no controller</p>
+        <button id="seatbelt-start-btn">Start Operation</button>
+      </div>
+    </div>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

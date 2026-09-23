@@ -1,3 +1,5 @@
+const CAMERA_LABELS = ['OVERVIEW', 'FOLLOW', 'CAB'];
+
 export default class HUD {
   constructor() {
     this._el = document.getElementById('hud-stats');
@@ -14,9 +16,11 @@ export default class HUD {
     this._idle = this._el.querySelector('.hud-idle');
     this._payload = this._el.querySelector('.hud-payload');
     this._engine = this._el.querySelector('.hud-engine');
+    this._cameraLabel = document.getElementById('hud-camera-mode');
+    this._alertEl = document.getElementById('hud-alert');
   }
 
-  update(snapshot) {
+  update(snapshot, cameraMode) {
     const fuel = snapshot.fuelLevel;
     const pct = Math.round(fuel);
     this._fuelPct.textContent = pct + '%';
@@ -29,5 +33,19 @@ export default class HUD {
     this._payload.textContent = snapshot.payloadCount + '/5';
     this._engine.textContent = snapshot.isEngineOn ? 'ON' : 'OFF';
     this._engine.style.color = snapshot.isEngineOn ? '#4CAF50' : '#f44336';
+
+    if (cameraMode !== undefined) {
+      this._cameraLabel.textContent = CAMERA_LABELS[cameraMode] ?? CAMERA_LABELS[0];
+    }
+  }
+
+  showEngineStarted() {
+    this._alertEl.textContent = 'ENGINE STARTED';
+    this._alertEl.style.display = 'block';
+    this._alertEl.style.borderColor = '#4CAF50';
+    this._alertEl.style.color = '#4CAF50';
+    setTimeout(() => {
+      this._alertEl.style.display = 'none';
+    }, 2000);
   }
 }
