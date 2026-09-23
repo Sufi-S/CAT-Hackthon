@@ -1,0 +1,21 @@
+{
+  "name": "cat-operator-guardian-game",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "three": "0.176.0"
+  },
+  "devDependencies": {
+    "@types/three": "latest",
+    "vite": "6.3.5"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true
+  }
+}
