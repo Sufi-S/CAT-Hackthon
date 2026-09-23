@@ -267,8 +267,7 @@ export default class VoxelTerrain {
 
   isDriveable(worldX, worldZ) {
     const { row, col } = this._worldToTile(worldX, worldZ);
-    const type = this.grid[row][col].type;
-    return type === TILE.GRAVEL || type === TILE.DUMP_ZONE;
+    return this.grid[row][col].type !== TILE.ROCK;
   }
 
   isDiggable(worldX, worldZ) {
