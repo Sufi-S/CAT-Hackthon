@@ -29,6 +29,7 @@ export default class VoxelTerrain {
     this._digTargetMeshes = [];
     this._fenceMesh = null;
     this._groundPlane = null;
+    this._subSurface = null;
     this._siteLight = null;
     this._digTargetGeo = null;
     this._digTargetMat = null;
@@ -217,18 +218,35 @@ export default class VoxelTerrain {
   }
 
   _buildGroundPlane() {
-    const geo = new THREE.PlaneGeometry(200, 200);
-    const mat = new THREE.MeshBasicMaterial({ color: 0x87CEEB });
+    const geo = new THREE.PlaneGeometry(500, 500);
+    const mat = new THREE.MeshBasicMaterial({ color: 0x87CEEB, depthWrite: false });
     this._groundPlane = new THREE.Mesh(geo, mat);
     this._groundPlane.rotation.x = -Math.PI / 2;
     this._groundPlane.position.y = -1.5;
+    this._groundPlane.renderOrder = -1;
     this.scene.add(this._groundPlane);
+
+    const subGeo = new THREE.PlaneGeometry(52, 52);
+    const subMat = new THREE.MeshLambertMaterial({ color: 0x5C4033 });
+    this._subSurface = new THREE.Mesh(subGeo, subMat);
+    this._subSurface.rotation.x = -Math.PI / 2;
+    this._subSurface.position.y = -0.1;
+    this.scene.add(this._subSurface);
   }
 
   _buildSiteLighting() {
     this._siteLight = new THREE.PointLight(0xFFE4B5, 1.0, 60);
     this._siteLight.position.set(0, 20, 0);
     this.scene.add(this._siteLight);
+  }
+
+  worldToTile(worldX, worldZ) {
+    return this._worldToTile(worldX, worldZ);
+  }
+
+  getTileAtGrid(row, col) {
+    if (row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE) return null;
+    return this.grid[row][col];
   }
 
   getTileAt(worldX, worldZ) {
@@ -370,6 +388,11 @@ export default class VoxelTerrain {
       this._groundPlane.geometry.dispose();
       this._groundPlane.material.dispose();
       this.scene.remove(this._groundPlane);
+    }
+    if (this._subSurface) {
+      this._subSurface.geometry.dispose();
+      this._subSurface.material.dispose();
+      this.scene.remove(this._subSurface);
     }
     if (this._siteLight) this.scene.remove(this._siteLight);
     this._instancedMeshes = {};

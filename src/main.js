@@ -104,7 +104,19 @@ function animate() {
     excavator.update(deltaTime, inputState);
 
     if (inputState.RT > 0.5) {
-      excavator.dig();
+      const bp = excavator.getBucketWorldPosition();
+      const tc = sceneManager.terrain.worldToTile(bp.x, bp.z);
+      const offsets = [[0,0],[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]];
+      let dug = false;
+      for (const [dr, dc] of offsets) {
+        if (dug) break;
+        const r = tc.row + dr, c = tc.col + dc;
+        const tile = sceneManager.terrain.getTileAtGrid(r, c);
+        if (tile && (tile.type === 'DIRT' || tile.type === 'DIG_TARGET')) {
+          excavator.digAtTile(r, c);
+          dug = true;
+        }
+      }
     }
     if (inputState.AJustPressed) {
       excavator.dump();
