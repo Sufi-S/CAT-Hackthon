@@ -1,4 +1,4 @@
-/* Stage 0 — game.css — CAT Operator Guardian */
+/* CAT Operator Guardian — game.css */
 * {
   margin: 0;
   padding: 0;
@@ -14,6 +14,8 @@ body {
   display: block;
 }
 
+/* ═══ HUD Overlay ═══ */
+
 #hud-overlay {
   position: absolute;
   top: 0;
@@ -26,7 +28,27 @@ body {
 }
 
 #hud-mission {
-  padding: 12px;
+  position: absolute;
+  top: 28px;
+  right: 12px;
+  text-align: right;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.mission-timer {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.mission-obj {
+  opacity: 0.85;
+}
+
+.mission-obj.obj-done {
+  color: #4CAF50;
+  opacity: 1;
 }
 
 #hud-stats {
@@ -118,6 +140,272 @@ body {
   font-size: 12px;
   color: #ff4444;
 }
+
+/* ═══ Screen Overlays ═══ */
+
+.screen-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.88);
+  z-index: 95;
+  font-family: monospace;
+  color: white;
+}
+
+.screen-overlay.hidden {
+  display: none;
+}
+
+/* ═══ Mission Select ═══ */
+
+.select-box {
+  max-width: 580px;
+  width: 90%;
+  text-align: center;
+}
+
+.select-box h1 {
+  color: #F5A623;
+  font-size: 22px;
+  letter-spacing: 2px;
+}
+
+.select-sub {
+  color: #F5A623;
+  font-size: 14px;
+  opacity: 0.8;
+  margin-bottom: 12px;
+}
+
+.select-op {
+  font-size: 13px;
+  opacity: 0.6;
+  margin-bottom: 20px;
+}
+
+.select-box h2 {
+  font-size: 16px;
+  margin-bottom: 16px;
+  letter-spacing: 1px;
+}
+
+.select-cards {
+  text-align: left;
+}
+
+.mission-card {
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  padding: 14px 18px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  border-radius: 4px;
+}
+
+.mission-card:hover {
+  border-color: rgba(245, 166, 35, 0.5);
+  background: rgba(245, 166, 35, 0.08);
+}
+
+.mission-card.selected {
+  border-color: #F5A623;
+  background: rgba(245, 166, 35, 0.15);
+}
+
+.mc-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+}
+
+.mc-num {
+  opacity: 0.5;
+  min-width: 24px;
+}
+
+.mc-title {
+  font-weight: bold;
+  flex: 1;
+}
+
+.mc-stars {
+  color: #F5A623;
+  font-size: 14px;
+}
+
+.mc-time {
+  opacity: 0.6;
+  font-size: 13px;
+}
+
+.mc-detail {
+  font-size: 12px;
+  opacity: 0.6;
+  margin-top: 4px;
+  margin-left: 34px;
+}
+
+.mc-sub {
+  font-size: 12px;
+  opacity: 0.5;
+  margin-left: 34px;
+}
+
+.select-hint {
+  font-size: 12px;
+  opacity: 0.4;
+  margin-top: 16px;
+}
+
+/* ═══ Debrief Screen ═══ */
+
+.debrief-box {
+  max-width: 560px;
+  width: 90%;
+  text-align: center;
+}
+
+.debrief-box h1 {
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+
+.debrief-box h1.db-success {
+  color: #4CAF50;
+}
+
+.debrief-box h1.db-fail {
+  color: #f44336;
+}
+
+.debrief-box h2 {
+  color: #F5A623;
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+
+.debrief-box h3 {
+  font-size: 14px;
+  opacity: 0.7;
+  margin-bottom: 12px;
+  letter-spacing: 1px;
+}
+
+.db-score-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 6px 0;
+  font-size: 14px;
+}
+
+.db-label {
+  width: 140px;
+  text-align: right;
+}
+
+.db-bar-track {
+  display: inline-block;
+  width: 180px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.db-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+}
+
+.db-val {
+  width: 30px;
+  text-align: left;
+  font-weight: bold;
+}
+
+.db-focus {
+  color: #FFC107;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.db-divider {
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  margin: 14px auto;
+  width: 80%;
+}
+
+.db-total {
+  font-size: 20px;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.db-stats {
+  text-align: left;
+  max-width: 320px;
+  margin: 0 auto;
+  font-size: 13px;
+  line-height: 1.8;
+  opacity: 0.8;
+}
+
+.db-coach {
+  margin: 16px auto;
+  max-width: 420px;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 12px 16px;
+  border-radius: 4px;
+  border-left: 3px solid #F5A623;
+}
+
+.db-coach h4 {
+  color: #F5A623;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.db-coach p {
+  font-size: 13px;
+  line-height: 1.5;
+  opacity: 0.85;
+  font-style: italic;
+}
+
+.db-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.db-btn {
+  cursor: pointer;
+  padding: 8px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 13px;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.db-btn:hover {
+  background: rgba(245, 166, 35, 0.2);
+  border-color: #F5A623;
+}
+
+/* ═══ Seatbelt Modal ═══ */
 
 #seatbelt-modal {
   position: absolute;

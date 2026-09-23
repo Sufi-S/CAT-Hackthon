@@ -19,6 +19,8 @@ export default class Excavator {
     this.fuelLevel = 85;
     this.idleTimer = 0;
     this.payloadCount = 0;
+    this.dumpCount = 0;
+    this.totalDigCount = 0;
 
     this.boomAngle = -30;
     this.armAngle = 20;
@@ -202,6 +204,7 @@ export default class Excavator {
     const tile = this.terrain.getTileAt(this.position.x, this.position.z);
     this.terrain.removeTile(tile.row, tile.col);
     this.payloadCount++;
+    this.totalDigCount++;
     return true;
   }
 
@@ -209,6 +212,7 @@ export default class Excavator {
     if (!this.terrain.isDumpZone(this.position.x, this.position.z)) return false;
     if (this.payloadCount === 0) return false;
     this.payloadCount = 0;
+    this.dumpCount++;
     return true;
   }
 
@@ -224,6 +228,24 @@ export default class Excavator {
       payloadCount: this.payloadCount,
       isEngineOn: this.isEngineOn,
     };
+  }
+
+  reset(startFuel) {
+    this.group.position.set(0, 0.15, 8);
+    this.group.rotation.y = Math.PI;
+    this.heading = Math.PI;
+    this.speed = 0;
+    this.fuelLevel = startFuel;
+    this.payloadCount = 0;
+    this.dumpCount = 0;
+    this.totalDigCount = 0;
+    this.idleTimer = 0;
+    this.isEngineOn = false;
+    this.boomAngle = -30;
+    this.armAngle = 20;
+    this.bucketAngle = 0;
+    this.swingAngle = 0;
+    this._applyJointAngles();
   }
 
   dispose() {

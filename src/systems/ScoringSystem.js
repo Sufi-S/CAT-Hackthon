@@ -1,13 +1,25 @@
 export default class ScoringSystem {
-  constructor(proximitySystem, excavator) {
+  constructor(proximitySystem, excavator, weights) {
     this.proximity = proximitySystem;
     this.excavator = excavator;
+    this.weights = weights || { safety: 0.35, fuel: 0.25, idle: 0.25, task: 0.15 };
 
     this.safetyScore = 100;
     this.fuelScore = 100;
     this.idleScore = 100;
     this.taskScore = 0;
 
+    this._totalTime = 0;
+    this._totalIdleTime = 0;
+    this._lastPayloadCount = 0;
+  }
+
+  reset(weights) {
+    if (weights) this.weights = weights;
+    this.safetyScore = 100;
+    this.fuelScore = 100;
+    this.idleScore = 100;
+    this.taskScore = 0;
     this._totalTime = 0;
     this._totalIdleTime = 0;
     this._lastPayloadCount = 0;
@@ -41,10 +53,10 @@ export default class ScoringSystem {
   }
 
   getComposite() {
-    return this.safetyScore * 0.35 +
-           this.fuelScore * 0.25 +
-           this.idleScore * 0.25 +
-           this.taskScore * 0.15;
+    return this.safetyScore * this.weights.safety +
+           this.fuelScore * this.weights.fuel +
+           this.idleScore * this.weights.idle +
+           this.taskScore * this.weights.task;
   }
 
   getSnapshot() {

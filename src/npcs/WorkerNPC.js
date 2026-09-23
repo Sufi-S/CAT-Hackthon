@@ -109,6 +109,16 @@ export default class WorkerNPC {
     this.group.rotation.y = Math.atan2(dx, dz);
   }
 
+  reset() {
+    this.currentWaypoint = 0;
+    this.waitTimer = 0;
+    this.state = 'moving';
+    this._time = 0;
+    const wp = this.patrolPath[0];
+    this.group.position.set(wp[0], 0, wp[2]);
+    this._faceWaypoint();
+  }
+
   dispose() {
     this.scene.remove(this.group);
     this.group.traverse(child => {

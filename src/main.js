@@ -7,6 +7,7 @@ import WorkerNPC from './npcs/WorkerNPC.js';
 import ProximitySystem from './systems/ProximitySystem.js';
 import ScoringSystem from './systems/ScoringSystem.js';
 import TelemetryClient from './network/TelemetryClient.js';
+import MissionSystem from './systems/MissionSystem.js';
 
 const sceneManager = new SceneManager();
 const clock = new THREE.Clock();
@@ -29,6 +30,9 @@ const proximity = new ProximitySystem(
   sceneManager.scene, excavator, workers, gamepad, telemetry
 );
 const scoring = new ScoringSystem(proximity, excavator);
+const missionSystem = new MissionSystem(
+  sceneManager.terrain, excavator, workers, proximity, scoring, telemetry
+);
 
 window.terrain = sceneManager.terrain;
 window.excavator = excavator;
@@ -36,6 +40,7 @@ window.gamepad = gamepad;
 window.workers = workers;
 window.proximity = proximity;
 window.scoring = scoring;
+window.missionSystem = missionSystem;
 
 let cameraMode = 0;
 
@@ -68,8 +73,7 @@ function runSeatbeltAnimation() {
 
   setTimeout(() => {
     seatbeltModal.classList.add('hidden');
-    excavator.startEngine();
-    hud.showEngineStarted();
+    missionSystem.showSelectScreen();
     seatbeltState = 'done';
   }, items.length * 300 + 400);
 }
@@ -84,24 +88,44 @@ function animate() {
   gamepad.update();
   const inputState = gamepad.getInputState();
 
-  if (inputState.LBJustPressed) cycleCameraMode();
-
-  if (inputState.startJustPressed && seatbeltState === 'pending') {
+  if (seatbeltState === 'pending' && inputState.startJustPressed) {
     runSeatbeltAnimation();
   }
 
+  if (missionSystem.state !== 'playing') {
+    missionSystem.handleInput(inputState);
+    sceneManager.renderer.render(sceneManager.scene, sceneManager.camera);
+    return;
+  }
+
+  if (inputState.LBJustPressed) cycleCameraMode();
+
   if (excavator.isEngineOn) {
     excavator.update(deltaTime, inputState);
+
+    if (inputState.RT > 0.5) {
+      excavator.dig();
+    }
+    if (inputState.AJustPressed) {
+      excavator.dump();
+    }
   }
 
   workers.forEach(w => w.update(deltaTime));
   proximity.update(deltaTime);
   scoring.update(deltaTime);
+  missionSystem.update(deltaTime);
 
   sceneManager.updateCamera(excavator);
   sceneManager.terrain.update(deltaTime);
 
-  hud.update(excavator.getTelemetrySnapshot(), cameraMode, scoring.getSnapshot());
+  hud.update({
+    telemetry: excavator.getTelemetrySnapshot(),
+    scores: scoring.getSnapshot(),
+    mission: missionSystem.getMissionHUDData(),
+    risk: proximity.getCurrentRisk(),
+    cameraMode,
+  });
 
   sceneManager.renderer.render(sceneManager.scene, sceneManager.camera);
 }

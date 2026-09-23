@@ -8,6 +8,7 @@ const ZERO_INPUT = {
   A: false, B: false, X: false, Y: false,
   LB: false, RB: false, start: false,
   LBJustPressed: false, startJustPressed: false, AJustPressed: false,
+  BJustPressed: false, DPadUpJustPressed: false, DPadDownJustPressed: false,
 };
 
 export default class GamepadController {
@@ -75,6 +76,9 @@ export default class GamepadController {
       LBJustPressed: this._justPressed(4),
       startJustPressed: this._justPressed(9),
       AJustPressed: this._justPressed(0),
+      BJustPressed: this._justPressed(1),
+      DPadUpJustPressed: this._justPressed(12),
+      DPadDownJustPressed: this._justPressed(13),
     };
   }
 

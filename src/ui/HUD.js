@@ -24,6 +24,7 @@ export default class HUD {
     this._engine = this._el.querySelector('.hud-engine');
     this._cameraLabel = document.getElementById('hud-camera-mode');
     this._alertEl = document.getElementById('hud-alert');
+    this._missionEl = document.getElementById('hud-mission');
 
     this._scBars = {
       safety: this._el.querySelector('.sc-safety'),
@@ -40,7 +41,12 @@ export default class HUD {
     };
   }
 
-  update(snapshot, cameraMode, scoring) {
+  update(data) {
+    const snapshot = data.telemetry;
+    const cameraMode = data.cameraMode;
+    const scoring = data.scores;
+    const mission = data.mission;
+
     const fuel = snapshot.fuelLevel;
     const pct = Math.round(fuel);
     this._fuelPct.textContent = pct + '%';
@@ -63,11 +69,16 @@ export default class HUD {
       this._updateScore('fuel', scoring.fuel);
       this._updateScore('idle', scoring.idle);
       this._updateScore('task', scoring.task);
-
       const total = Math.round(scoring.total);
       this._scVals.total.textContent = total;
       this._scVals.total.style.color =
         total > 80 ? '#4CAF50' : total > 50 ? '#FFC107' : '#f44336';
+    }
+
+    if (mission) {
+      this._updateMission(mission);
+    } else {
+      this._missionEl.innerHTML = '';
     }
   }
 
@@ -81,15 +92,21 @@ export default class HUD {
       value > 80 ? '#4CAF50' : value > 50 ? '#FFC107' : '#f44336';
   }
 
-  showEngineStarted() {
-    this._alertEl.textContent = 'ENGINE STARTED';
-    this._alertEl.style.display = 'block';
-    this._alertEl.style.background = 'rgba(0, 0, 0, 0.85)';
-    this._alertEl.style.borderColor = '#4CAF50';
-    this._alertEl.style.color = '#4CAF50';
-    this._alertEl.classList.remove('pulse');
-    setTimeout(() => {
-      this._alertEl.style.display = 'none';
-    }, 2000);
+  _updateMission(mission) {
+    const rem = mission.timeRemaining;
+    const pct = rem / mission.timeLimit;
+    const m = Math.floor(rem / 60);
+    const s = Math.floor(rem % 60);
+    const time = m + ':' + String(s).padStart(2, '0');
+    const color = pct > 0.5 ? '#4CAF50' : pct > 0.25 ? '#FFC107' : '#f44336';
+
+    let html = `<div class="mission-timer" style="color:${color}">⏱ ${time} remaining</div>`;
+    for (const obj of mission.objectives) {
+      const icon = obj.complete ? '✓' : '○';
+      const cls = obj.complete ? 'obj-done' : '';
+      const prog = obj.complete ? '' : ` (${obj.progress})`;
+      html += `<div class="mission-obj ${cls}">${icon} ${obj.text}${prog}</div>`;
+    }
+    this._missionEl.innerHTML = html;
   }
 }

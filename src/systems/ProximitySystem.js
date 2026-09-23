@@ -155,6 +155,17 @@ export default class ProximitySystem {
     return this.incidentCount;
   }
 
+  reset() {
+    this.currentRisk = 'SAFE';
+    this.closestDist = Infinity;
+    this.closestWorkerId = null;
+    this.incidentCount = 0;
+    this._inHighIncident = false;
+    this._vibrateTimer = 0;
+    this._alertEl.style.display = 'none';
+    this._alertEl.classList.remove('pulse');
+  }
+
   dispose() {
     this.scene.remove(this._dangerRing);
     this.scene.remove(this._warningRing);

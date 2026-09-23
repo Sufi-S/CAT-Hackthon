@@ -305,6 +305,11 @@ export default class VoxelTerrain {
     return out;
   }
 
+  rebuild() {
+    this.dispose();
+    this.buildSite();
+  }
+
   update(deltaTime) {}
 
   dispose() {
