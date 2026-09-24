@@ -33,6 +33,8 @@ export default class GamepadController {
       this.gamepad = null;
       this.connected = false;
       this.vibrationSupported = false;
+      this.buttonStates = {};
+      this.prevButtonStates = {};
       this._updateIndicator();
     });
   }

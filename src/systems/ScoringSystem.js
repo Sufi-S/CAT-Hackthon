@@ -11,7 +11,7 @@ export default class ScoringSystem {
 
     this._totalTime = 0;
     this._totalIdleTime = 0;
-    this._lastPayloadCount = 0;
+    this._lastDigCount = 0;
   }
 
   reset(weights) {
@@ -22,7 +22,7 @@ export default class ScoringSystem {
     this.taskScore = 0;
     this._totalTime = 0;
     this._totalIdleTime = 0;
-    this._lastPayloadCount = 0;
+    this._lastDigCount = 0;
   }
 
   update(deltaTime) {
@@ -46,9 +46,9 @@ export default class ScoringSystem {
       this.idleScore = Math.max(0, this.idleScore - 2 * deltaTime);
     }
 
-    if (this.excavator.payloadCount > this._lastPayloadCount) {
+    if (this.excavator.totalDigCount > this._lastDigCount) {
       this.taskScore = Math.min(100, this.taskScore + 20);
-      this._lastPayloadCount = this.excavator.payloadCount;
+      this._lastDigCount = this.excavator.totalDigCount;
     }
   }
 

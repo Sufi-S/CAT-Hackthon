@@ -27,6 +27,8 @@ const COACH = {
   },
 };
 
+const COMPLETION_TYPES = new Set(['payload_above', 'dumps_above']);
+
 export default class MissionSystem {
   static MISSIONS = {
     fuel_saver: {
@@ -95,6 +97,7 @@ export default class MissionSystem {
     this._debriefEl = document.getElementById('mission-debrief');
     this._alertEl = document.getElementById('hud-alert');
 
+    this._engineAlertTimeout = null;
     this._buildSelectScreen();
   }
 
@@ -198,13 +201,19 @@ export default class MissionSystem {
 
     this.excavator.startEngine();
 
+    if (this._engineAlertTimeout) clearTimeout(this._engineAlertTimeout);
     this._alertEl.textContent = 'ENGINE STARTED';
     this._alertEl.style.display = 'block';
     this._alertEl.style.background = 'rgba(0, 0, 0, 0.85)';
     this._alertEl.style.borderColor = '#4CAF50';
     this._alertEl.style.color = '#4CAF50';
     this._alertEl.classList.remove('pulse');
-    setTimeout(() => { this._alertEl.style.display = 'none'; }, 2000);
+    this._engineAlertTimeout = setTimeout(() => {
+      this._engineAlertTimeout = null;
+      if (this.proximity.getCurrentRisk() === 'SAFE') {
+        this._alertEl.style.display = 'none';
+      }
+    }, 2000);
   }
 
   update(deltaTime) {
@@ -218,8 +227,7 @@ export default class MissionSystem {
       return;
     }
 
-    const completionTypes = new Set(['payload_above', 'dumps_above']);
-    const completionObjs = this.currentMission.objectives.filter(o => completionTypes.has(o.type));
+    const completionObjs = this.currentMission.objectives.filter(o => COMPLETION_TYPES.has(o.type));
     if (completionObjs.length > 0 && completionObjs.every(o => this.objectiveStatus[o.id])) {
       this.completeMission(true);
     }
@@ -374,7 +382,7 @@ export default class MissionSystem {
   }
 
   _bar(label, value, isFocus) {
-    const v = Math.round(value);
+    const v = Math.max(0, Math.min(100, Math.round(value)));
     const color = value > 80 ? '#4CAF50' : value > 50 ? '#FFC107' : '#f44336';
     const tag = isFocus ? ' <span class="db-focus">← FOCUS AREA</span>' : '';
     return `<div class="db-score-row">

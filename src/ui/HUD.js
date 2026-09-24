@@ -48,7 +48,7 @@ export default class HUD {
     const mission = data.mission;
 
     const fuel = snapshot.fuelLevel;
-    const pct = Math.round(fuel);
+    const pct = Math.max(0, Math.min(100, Math.round(fuel)));
     this._fuelPct.textContent = pct + '%';
     this._fuelFill.style.width = pct + '%';
     this._fuelFill.style.backgroundColor =
@@ -69,7 +69,7 @@ export default class HUD {
       this._updateScore('fuel', scoring.fuel);
       this._updateScore('idle', scoring.idle);
       this._updateScore('task', scoring.task);
-      const total = Math.round(scoring.total);
+      const total = Math.max(0, Math.min(100, Math.round(scoring.total)));
       this._scVals.total.textContent = total;
       this._scVals.total.style.color =
         total > 80 ? '#4CAF50' : total > 50 ? '#FFC107' : '#f44336';
@@ -85,7 +85,7 @@ export default class HUD {
   _updateScore(key, value) {
     const bar = this._scBars[key];
     const val = this._scVals[key];
-    const rounded = Math.round(value);
+    const rounded = Math.max(0, Math.min(100, Math.round(value)));
     val.textContent = rounded;
     bar.style.width = rounded + '%';
     bar.style.backgroundColor =

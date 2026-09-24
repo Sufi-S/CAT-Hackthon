@@ -93,7 +93,9 @@ function animate() {
   }
 
   if (missionSystem.state !== 'playing') {
-    missionSystem.handleInput(inputState);
+    if (seatbeltState === 'done') {
+      missionSystem.handleInput(inputState);
+    }
     sceneManager.renderer.render(sceneManager.scene, sceneManager.camera);
     return;
   }

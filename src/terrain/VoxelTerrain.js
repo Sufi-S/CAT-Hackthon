@@ -33,6 +33,13 @@ export default class VoxelTerrain {
     this._siteLight = null;
     this._digTargetGeo = null;
     this._digTargetMat = null;
+
+    this._hideDummy = new THREE.Object3D();
+    this._hideDummy.position.set(0, -500, 0);
+    this._hideDummy.scale.set(0, 0, 0);
+    this._hideDummy.updateMatrix();
+
+    this._dumpEffects = [];
   }
 
   buildSite() {
@@ -271,11 +278,7 @@ export default class VoxelTerrain {
     if (tile.type === TILE.DIRT) {
       const im = this._instancedMeshes[TILE.DIRT];
       if (im && tile.instanceIndex !== undefined) {
-        const dummy = new THREE.Object3D();
-        dummy.position.set(0, -500, 0);
-        dummy.scale.set(0, 0, 0);
-        dummy.updateMatrix();
-        im.setMatrixAt(tile.instanceIndex, dummy.matrix);
+        im.setMatrixAt(tile.instanceIndex, this._hideDummy.matrix);
         im.instanceMatrix.needsUpdate = true;
       }
       tile.type = TILE.DIG_HOLE;
@@ -350,17 +353,22 @@ export default class VoxelTerrain {
       chunks.push(chunk);
     }
 
-    setTimeout(() => {
-      for (const c of chunks) c.material.opacity = 0.4;
-    }, 800);
+    const entry = { chunks, geo, timeoutIds: [] };
+    this._dumpEffects.push(entry);
 
-    setTimeout(() => {
+    entry.timeoutIds.push(setTimeout(() => {
+      for (const c of chunks) c.material.opacity = 0.4;
+    }, 800));
+
+    entry.timeoutIds.push(setTimeout(() => {
       for (const c of chunks) {
         this.scene.remove(c);
         c.material.dispose();
       }
       geo.dispose();
-    }, 1500);
+      const idx = this._dumpEffects.indexOf(entry);
+      if (idx !== -1) this._dumpEffects.splice(idx, 1);
+    }, 1500));
   }
 
   rebuild() {
@@ -371,6 +379,16 @@ export default class VoxelTerrain {
   update(deltaTime) {}
 
   dispose() {
+    for (const eff of this._dumpEffects) {
+      for (const tid of eff.timeoutIds) clearTimeout(tid);
+      for (const c of eff.chunks) {
+        this.scene.remove(c);
+        c.material.dispose();
+      }
+      eff.geo.dispose();
+    }
+    this._dumpEffects = [];
+
     for (const im of Object.values(this._instancedMeshes)) {
       im.geometry.dispose();
       im.material.dispose();
