@@ -35,6 +35,9 @@ export default class Excavator {
     this._bucketWorldQuat = new THREE.Quaternion();
     this._tipDir = new THREE.Vector3();
     this._digFlashTimer = 0;
+    this._digState = 'idle';
+    this._digCooldown = 0;
+    this._digWasReleased = true;
 
     this._buildModel();
 
@@ -219,31 +222,90 @@ export default class Excavator {
     return this._bucketWorldPos;
   }
 
-  dig() {
-    const bp = this.getBucketWorldPosition();
-    if (!this.terrain.isDiggable(bp.x, bp.z)) return false;
-    const tile = this.terrain.getTileAt(bp.x, bp.z);
-    this.terrain.removeTile(tile.row, tile.col);
-    this.payloadCount++;
-    this.totalDigCount++;
-    return true;
+  tryDig(deltaTime, digInputHeld, terrain) {
+    if (!digInputHeld) {
+      this._digWasReleased = true;
+    }
+
+    if (this._digState === 'cooldown') {
+      this._digCooldown -= deltaTime;
+      if (this._digCooldown <= 0 && this._digWasReleased) {
+        this._digState = 'idle';
+        this._digCooldown = 0;
+      }
+      return { dug: false };
+    }
+
+    if (this._digState === 'idle' && digInputHeld && this._digWasReleased) {
+      if (this.payloadCount >= 5) return { dug: false };
+
+      this._digWasReleased = false;
+
+      const bp = this.getBucketWorldPosition();
+      const center = terrain.worldToTile(bp.x, bp.z);
+      let bestDist = Infinity;
+      let bestRow = -1;
+      let bestCol = -1;
+
+      const offsets = [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]];
+      for (const [dr, dc] of offsets) {
+        const r = center.row + dr;
+        const c = center.col + dc;
+        const tile = terrain.getTileAtGrid(r, c);
+        if (!tile || tile.type !== 'DIG_TARGET') continue;
+        const tw = terrain.tileToWorld(r, c);
+        const dx = bp.x - tw.x;
+        const dz = bp.z - tw.z;
+        const dist = dx * dx + dz * dz;
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestRow = r;
+          bestCol = c;
+        }
+      }
+      if (bestRow < 0) {
+        for (const [dr, dc] of offsets) {
+          const r = center.row + dr;
+          const c = center.col + dc;
+          const tile = terrain.getTileAtGrid(r, c);
+          if (!tile || tile.type !== 'DIRT') continue;
+          const tw = terrain.tileToWorld(r, c);
+          const dx = bp.x - tw.x;
+          const dz = bp.z - tw.z;
+          const dist = dx * dx + dz * dz;
+          if (dist < bestDist) {
+            bestDist = dist;
+            bestRow = r;
+            bestCol = c;
+          }
+        }
+      }
+
+      if (bestRow >= 0 && bestDist < 1.5 * 1.5) {
+        terrain.removeTile(bestRow, bestCol);
+        this.payloadCount++;
+        this.totalDigCount++;
+        this._bucket.material.emissive.setHex(0xFFAA00);
+        this._bucket.material.emissiveIntensity = 0.8;
+        this._digFlashTimer = 0.3;
+        this._digState = 'cooldown';
+        this._digCooldown = 0.4;
+        console.log('[DIG] removed row=' + bestRow + ' col=' + bestCol + ' payload=' + this.payloadCount + '/5');
+        return { dug: true, row: bestRow, col: bestCol };
+      }
+    }
+
+    return { dug: false };
   }
 
-  digAtTile(row, col) {
-    if (this.payloadCount >= 5) return false;
-    this.terrain.removeTile(row, col);
-    this.payloadCount++;
-    this.totalDigCount++;
-    this._bucket.material.emissive.setHex(0xFFAA00);
-    this._bucket.material.emissiveIntensity = 0.8;
-    this._digFlashTimer = 0.3;
-    return true;
-  }
-
-  dump() {
-    if (!this.terrain.isDumpZone(this.position.x, this.position.z)) return false;
+  tryDump(terrain) {
+    console.log('[DUMP] tryDump at', this.position.x.toFixed(1), this.position.z.toFixed(1),
+      'payload=' + this.payloadCount, 'isDumpZone=' + terrain.isDumpZone(this.position.x, this.position.z));
     if (this.payloadCount === 0) return false;
-    this.terrain.showDumpEffect(this.position.x, this.position.z);
+    if (!terrain.isDumpZone(this.position.x, this.position.z)) return false;
+    const count = 3 + Math.floor(Math.random() * 3);
+    console.log('[DUMP] executing: spawning', count, 'chunks');
+    terrain.spawnDumpChunks(this.position.x, this.position.z, count);
     this.payloadCount = 0;
     this.dumpCount++;
     return true;
@@ -281,6 +343,9 @@ export default class Excavator {
     this._applyJointAngles();
     this._digFlashTimer = 0;
     this._bucket.material.emissiveIntensity = 0;
+    this._digState = 'idle';
+    this._digCooldown = 0;
+    this._digWasReleased = true;
   }
 
   dispose() {

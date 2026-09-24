@@ -92,6 +92,9 @@ function animate() {
     runSeatbeltAnimation();
   }
 
+  sceneManager.terrain.update(deltaTime);
+  hud.updateInputSource(inputManager.activeSource);
+
   if (missionSystem.state !== 'playing') {
     if (seatbeltState === 'done') {
       missionSystem.handleInput(inputState);
@@ -105,22 +108,10 @@ function animate() {
   if (excavator.isEngineOn) {
     excavator.update(deltaTime, inputState);
 
-    if (inputState.RT > 0.5) {
-      const bp = excavator.getBucketWorldPosition();
-      const tc = sceneManager.terrain.worldToTile(bp.x, bp.z);
-      const offsets = [[0,0],[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]];
-      let dug = false;
-      for (const [dr, dc] of offsets) {
-        if (dug) break;
-        const r = tc.row + dr, c = tc.col + dc;
-        const tile = sceneManager.terrain.getTileAtGrid(r, c);
-        if (tile && (tile.type === 'DIRT' || tile.type === 'DIG_TARGET')) {
-          dug = excavator.digAtTile(r, c);
-        }
-      }
-    }
+    excavator.tryDig(deltaTime, inputState.RT > 0.5, sceneManager.terrain);
+
     if (inputState.AJustPressed) {
-      excavator.dump();
+      excavator.tryDump(sceneManager.terrain);
     }
   }
 
@@ -130,7 +121,6 @@ function animate() {
   missionSystem.update(deltaTime);
 
   sceneManager.updateCamera(excavator);
-  sceneManager.terrain.update(deltaTime);
 
   hud.update({
     telemetry: excavator.getTelemetrySnapshot(),
@@ -140,7 +130,6 @@ function animate() {
     cameraMode,
   });
 
-  hud.updateInputSource(inputManager.activeSource);
   sceneManager.renderer.render(sceneManager.scene, sceneManager.camera);
 }
 

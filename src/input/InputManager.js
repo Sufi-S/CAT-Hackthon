@@ -26,6 +26,11 @@ export default class InputManager {
 
     this.activeSource = gamepadRecent ? 'gamepad' : 'keyboard';
     this.connected = true;
+
+    if (!this._lastLogTime || performance.now() - this._lastLogTime > 1000) {
+      console.log('[INPUT] source=' + this.activeSource, 'gamepad.connected=' + this._gamepad.connected);
+      this._lastLogTime = performance.now();
+    }
   }
 
   getInputState() {

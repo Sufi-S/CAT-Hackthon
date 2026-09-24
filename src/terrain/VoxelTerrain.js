@@ -39,7 +39,7 @@ export default class VoxelTerrain {
     this._hideDummy.scale.set(1, 1, 1);
     this._hideDummy.updateMatrix();
 
-    this._dumpEffects = [];
+    this._activeDumpChunks = [];
   }
 
   buildSite() {
@@ -100,7 +100,7 @@ export default class VoxelTerrain {
       const j = Math.floor(Math.random() * (i + 1));
       [dirtCells[i], dirtCells[j]] = [dirtCells[j], dirtCells[i]];
     }
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 5; i++) {
       this.grid[dirtCells[i][0]][dirtCells[i][1]].type = TILE.DIG_TARGET;
     }
 
@@ -237,7 +237,7 @@ export default class VoxelTerrain {
     const subMat = new THREE.MeshLambertMaterial({ color: 0x5C4033 });
     this._subSurface = new THREE.Mesh(subGeo, subMat);
     this._subSurface.rotation.x = -Math.PI / 2;
-    this._subSurface.position.y = -0.1;
+    this._subSurface.position.y = -1.0;
     this.scene.add(this._subSurface);
   }
 
@@ -249,6 +249,10 @@ export default class VoxelTerrain {
 
   worldToTile(worldX, worldZ) {
     return this._worldToTile(worldX, worldZ);
+  }
+
+  tileToWorld(row, col) {
+    return this._tileToWorld(row, col);
   }
 
   getTileAtGrid(row, col) {
@@ -326,34 +330,30 @@ export default class VoxelTerrain {
     return out;
   }
 
-  showDumpEffect(worldX, worldZ) {
-    const count = 3 + Math.floor(Math.random() * 3);
-    const geo = new THREE.BoxGeometry(0.3, 0.3, 0.3);
-    const chunks = [];
-
+  spawnDumpChunks(worldX, worldZ, count) {
+    console.log('[DUMP] spawned', count, 'chunks at', worldX.toFixed(1), worldZ.toFixed(1), 'y=0.3 (visible above ground)');
     for (let i = 0; i < count; i++) {
+      const geo = new THREE.BoxGeometry(0.3, 0.3, 0.3);
       const mat = new THREE.MeshLambertMaterial({
         color: 0x8B4513,
         transparent: true,
+        opacity: 1,
+        depthWrite: false,
       });
-      const chunk = new THREE.Mesh(geo, mat);
-      const s = 0.5 + Math.random() * 0.5;
-      chunk.position.set(
-        worldX + (Math.random() - 0.5) * 1.5,
-        0.15 + Math.random() * 0.3,
-        worldZ + (Math.random() - 0.5) * 1.5
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(
+        worldX + (Math.random() - 0.5),
+        0.3,
+        worldZ + (Math.random() - 0.5)
       );
-      chunk.rotation.set(
+      mesh.rotation.set(
         Math.random() * Math.PI,
         Math.random() * Math.PI,
         Math.random() * Math.PI
       );
-      chunk.scale.set(s, s, s);
-      this.scene.add(chunk);
-      chunks.push(chunk);
+      this.scene.add(mesh);
+      this._activeDumpChunks.push({ mesh, elapsed: 0 });
     }
-
-    this._dumpEffects.push({ chunks, geo, elapsed: 0 });
   }
 
   rebuild() {
@@ -362,35 +362,33 @@ export default class VoxelTerrain {
   }
 
   update(deltaTime) {
-    const HOLD = 0.8;
-    const FADE = 0.7;
-    for (let i = this._dumpEffects.length - 1; i >= 0; i--) {
-      const eff = this._dumpEffects[i];
-      eff.elapsed += deltaTime;
-      if (eff.elapsed > HOLD + FADE) {
-        for (const c of eff.chunks) {
-          this.scene.remove(c);
-          c.material.dispose();
-        }
-        eff.geo.dispose();
-        this._dumpEffects.splice(i, 1);
-      } else if (eff.elapsed > HOLD) {
-        const t = (eff.elapsed - HOLD) / FADE;
-        const opacity = 1 - t;
-        for (const c of eff.chunks) c.material.opacity = opacity;
+    this.updateDumpChunks(deltaTime);
+  }
+
+  updateDumpChunks(deltaTime) {
+    for (let i = this._activeDumpChunks.length - 1; i >= 0; i--) {
+      const entry = this._activeDumpChunks[i];
+      entry.elapsed += deltaTime;
+      if (entry.elapsed >= 1.5) {
+        this.scene.remove(entry.mesh);
+        entry.mesh.geometry.dispose();
+        entry.mesh.material.dispose();
+        this._activeDumpChunks.splice(i, 1);
+        console.log('[DUMP] chunk removed, remaining:', this._activeDumpChunks.length);
+      } else if (entry.elapsed >= 0.8) {
+        const opacity = Math.max(0, Math.min(1, 1 - ((entry.elapsed - 0.8) / 0.7)));
+        entry.mesh.material.opacity = opacity;
       }
     }
   }
 
   dispose() {
-    for (const eff of this._dumpEffects) {
-      for (const c of eff.chunks) {
-        this.scene.remove(c);
-        c.material.dispose();
-      }
-      eff.geo.dispose();
+    for (const entry of this._activeDumpChunks) {
+      this.scene.remove(entry.mesh);
+      entry.mesh.geometry.dispose();
+      entry.mesh.material.dispose();
     }
-    this._dumpEffects = [];
+    this._activeDumpChunks = [];
 
     for (const im of Object.values(this._instancedMeshes)) {
       im.geometry.dispose();
