@@ -36,7 +36,7 @@ export default class VoxelTerrain {
 
     this._hideDummy = new THREE.Object3D();
     this._hideDummy.position.set(0, -500, 0);
-    this._hideDummy.scale.set(0, 0, 0);
+    this._hideDummy.scale.set(1, 1, 1);
     this._hideDummy.updateMatrix();
 
     this._dumpEffects = [];
@@ -353,22 +353,7 @@ export default class VoxelTerrain {
       chunks.push(chunk);
     }
 
-    const entry = { chunks, geo, timeoutIds: [] };
-    this._dumpEffects.push(entry);
-
-    entry.timeoutIds.push(setTimeout(() => {
-      for (const c of chunks) c.material.opacity = 0.4;
-    }, 800));
-
-    entry.timeoutIds.push(setTimeout(() => {
-      for (const c of chunks) {
-        this.scene.remove(c);
-        c.material.dispose();
-      }
-      geo.dispose();
-      const idx = this._dumpEffects.indexOf(entry);
-      if (idx !== -1) this._dumpEffects.splice(idx, 1);
-    }, 1500));
+    this._dumpEffects.push({ chunks, geo, elapsed: 0 });
   }
 
   rebuild() {
@@ -376,11 +361,29 @@ export default class VoxelTerrain {
     this.buildSite();
   }
 
-  update(deltaTime) {}
+  update(deltaTime) {
+    const HOLD = 0.8;
+    const FADE = 0.7;
+    for (let i = this._dumpEffects.length - 1; i >= 0; i--) {
+      const eff = this._dumpEffects[i];
+      eff.elapsed += deltaTime;
+      if (eff.elapsed > HOLD + FADE) {
+        for (const c of eff.chunks) {
+          this.scene.remove(c);
+          c.material.dispose();
+        }
+        eff.geo.dispose();
+        this._dumpEffects.splice(i, 1);
+      } else if (eff.elapsed > HOLD) {
+        const t = (eff.elapsed - HOLD) / FADE;
+        const opacity = 1 - t;
+        for (const c of eff.chunks) c.material.opacity = opacity;
+      }
+    }
+  }
 
   dispose() {
     for (const eff of this._dumpEffects) {
-      for (const tid of eff.timeoutIds) clearTimeout(tid);
       for (const c of eff.chunks) {
         this.scene.remove(c);
         c.material.dispose();

@@ -34,6 +34,7 @@ export default class Excavator {
     this._bucketWorldPos = new THREE.Vector3();
     this._bucketWorldQuat = new THREE.Quaternion();
     this._tipDir = new THREE.Vector3();
+    this._digFlashTimer = 0;
 
     this._buildModel();
 
@@ -192,6 +193,14 @@ export default class Excavator {
     } else {
       this.idleTimer += deltaTime;
     }
+
+    if (this._digFlashTimer > 0) {
+      this._digFlashTimer -= deltaTime;
+      if (this._digFlashTimer <= 0) {
+        this._digFlashTimer = 0;
+        this._bucket.material.emissiveIntensity = 0;
+      }
+    }
   }
 
   startEngine() {
@@ -221,9 +230,13 @@ export default class Excavator {
   }
 
   digAtTile(row, col) {
+    if (this.payloadCount >= 5) return false;
     this.terrain.removeTile(row, col);
     this.payloadCount++;
     this.totalDigCount++;
+    this._bucket.material.emissive.setHex(0xFFAA00);
+    this._bucket.material.emissiveIntensity = 0.8;
+    this._digFlashTimer = 0.3;
     return true;
   }
 
@@ -266,6 +279,8 @@ export default class Excavator {
     this.bucketAngle = 0;
     this.swingAngle = 0;
     this._applyJointAngles();
+    this._digFlashTimer = 0;
+    this._bucket.material.emissiveIntensity = 0;
   }
 
   dispose() {

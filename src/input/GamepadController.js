@@ -19,13 +19,10 @@ export default class GamepadController {
     this.buttonStates = {};
     this.prevButtonStates = {};
 
-    this._hudIndicator = document.getElementById('hud-controller');
-
     window.addEventListener('gamepadconnected', (e) => {
       console.log('Gamepad connected:', e.gamepad.id);
       this.connected = true;
       this.vibrationSupported = !!e.gamepad.vibrationActuator;
-      this._updateIndicator();
     });
 
     window.addEventListener('gamepaddisconnected', () => {
@@ -35,7 +32,6 @@ export default class GamepadController {
       this.vibrationSupported = false;
       this.buttonStates = {};
       this.prevButtonStates = {};
-      this._updateIndicator();
     });
   }
 
@@ -52,7 +48,6 @@ export default class GamepadController {
       }
     }
 
-    this._updateIndicator();
   }
 
   getInputState() {
@@ -108,14 +103,4 @@ export default class GamepadController {
     }
   }
 
-  _updateIndicator() {
-    if (!this._hudIndicator) return;
-    if (this.connected) {
-      this._hudIndicator.textContent = '● Controller: Connected';
-      this._hudIndicator.style.color = '#4CAF50';
-    } else {
-      this._hudIndicator.textContent = '● Controller: Disconnected';
-      this._hudIndicator.style.color = '#ff4444';
-    }
-  }
 }

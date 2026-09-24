@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import SceneManager from './scene/SceneManager.js';
 import Excavator from './machine/Excavator.js';
-import GamepadController from './input/GamepadController.js';
+import InputManager from './input/InputManager.js';
 import HUD from './ui/HUD.js';
 import WorkerNPC from './npcs/WorkerNPC.js';
 import ProximitySystem from './systems/ProximitySystem.js';
@@ -11,7 +11,7 @@ import MissionSystem from './systems/MissionSystem.js';
 
 const sceneManager = new SceneManager();
 const clock = new THREE.Clock();
-const gamepad = new GamepadController();
+const inputManager = new InputManager();
 const excavator = new Excavator(sceneManager.scene, sceneManager.terrain);
 const hud = new HUD();
 const telemetry = new TelemetryClient();
@@ -27,7 +27,7 @@ const workers = PATROL_PATHS.map((path, i) =>
 );
 
 const proximity = new ProximitySystem(
-  sceneManager.scene, excavator, workers, gamepad, telemetry
+  sceneManager.scene, excavator, workers, inputManager, telemetry
 );
 const scoring = new ScoringSystem(proximity, excavator);
 const missionSystem = new MissionSystem(
@@ -36,7 +36,7 @@ const missionSystem = new MissionSystem(
 
 window.terrain = sceneManager.terrain;
 window.excavator = excavator;
-window.gamepad = gamepad;
+window.inputManager = inputManager;
 window.workers = workers;
 window.proximity = proximity;
 window.scoring = scoring;
@@ -85,8 +85,8 @@ function animate() {
   requestAnimationFrame(animate);
   const deltaTime = clock.getDelta();
 
-  gamepad.update();
-  const inputState = gamepad.getInputState();
+  inputManager.update();
+  const inputState = inputManager.getInputState();
 
   if (seatbeltState === 'pending' && inputState.startJustPressed) {
     runSeatbeltAnimation();
@@ -115,8 +115,7 @@ function animate() {
         const r = tc.row + dr, c = tc.col + dc;
         const tile = sceneManager.terrain.getTileAtGrid(r, c);
         if (tile && (tile.type === 'DIRT' || tile.type === 'DIG_TARGET')) {
-          excavator.digAtTile(r, c);
-          dug = true;
+          dug = excavator.digAtTile(r, c);
         }
       }
     }
@@ -141,6 +140,7 @@ function animate() {
     cameraMode,
   });
 
+  hud.updateInputSource(inputManager.activeSource);
   sceneManager.renderer.render(sceneManager.scene, sceneManager.camera);
 }
 

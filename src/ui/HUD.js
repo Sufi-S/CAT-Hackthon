@@ -25,6 +25,7 @@ export default class HUD {
     this._cameraLabel = document.getElementById('hud-camera-mode');
     this._alertEl = document.getElementById('hud-alert');
     this._missionEl = document.getElementById('hud-mission');
+    this._inputIndicator = document.getElementById('hud-controller');
 
     this._scBars = {
       safety: this._el.querySelector('.sc-safety'),
@@ -108,5 +109,16 @@ export default class HUD {
       html += `<div class="mission-obj ${cls}">${icon} ${obj.text}${prog}</div>`;
     }
     this._missionEl.innerHTML = html;
+  }
+
+  updateInputSource(source) {
+    if (!this._inputIndicator) return;
+    if (source === 'gamepad') {
+      this._inputIndicator.textContent = '● Input: Xbox Controller';
+      this._inputIndicator.style.color = '#4CAF50';
+    } else {
+      this._inputIndicator.textContent = '● Input: Keyboard';
+      this._inputIndicator.style.color = '#4CAF50';
+    }
   }
 }
